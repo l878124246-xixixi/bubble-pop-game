@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>戳泡泡 - 舒压小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a1929 0%, #1a2332 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            z-index: 10;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score {
+            font-size: 1.6em;
+            background: rgba(255,255,255,0.15);
+            padding: 12px 25px;
+            border-radius: 25px;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .bubble-container {
+            display: grid;
+            grid-template-columns: repeat(5, 130px);
+            grid-gap: 20px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .bubble {
+            width: 130px;
+            height: 130px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            animation: float 5s ease-in-out infinite;
+            filter: drop-shadow(0 10px 25px rgba(0,0,0,0.4));
+        }
+
+        .bubble img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* 每个泡泡不同的浮动动画延迟 */
+        .bubble:nth-child(1) { animation-delay: 0s; }
+        .bubble:nth-child(2) { animation-delay: 0.3s; }
+        .bubble:nth-child(3) { animation-delay: 0.6s; }
+        .bubble:nth-child(4) { animation-delay: 0.9s; }
+        .bubble:nth-child(5) { animation-delay: 1.2s; }
+        .bubble:nth-child(6) { animation-delay: 1.5s; }
+        .bubble:nth-child(7) { animation-delay: 1.8s; }
+        .bubble:nth-child(8) { animation-delay: 2.1s; }
+        .bubble:nth-child(9) { animation-delay: 2.4s; }
+        .bubble:nth-child(10) { animation-delay: 2.7s; }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-12px) rotate(3deg);
+            }
+            50% {
+                transform: translateY(-6px) rotate(-2deg);
+            }
+            75% {
+                transform: translateY(-10px) rotate(2deg);
+            }
+        }
+
+        .bubble:hover:not(.popped) {
+            transform: scale(1.2) translateY(-8px);
+            filter: drop-shadow(0 15px 40px rgba(100,150,255,0.5)) brightness(1.2);
+        }
+
+        .bubble:active:not(.popped) {
+            transform: scale(0.95);
+        }
+
+        .bubble.popped {
+            animation: burst 0.7s ease-out forwards !important;
+            pointer-events: none;
+        }
+
+        @keyframes burst {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+                filter: blur(0px) drop-shadow(0 10px 25px rgba(0,0,0,0.4));
+            }
+            50% {
+                transform: scale(1.6);
+                opacity: 0.6;
+                filter: blur(8px) drop-shadow(0 20px 50px rgba(100,150,255,0.6));
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+                filter: blur(15px);
+            }
+        }
+
+        .water-drop {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .reset-btn {
+            margin-top: 25px;
+            padding: 14px 35px;
+            font-size: 1.3em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            font-weight: bold;
+            z-index: 10;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
+        .celebration {
+            position: fixed;
+            font-size: 4em;
+            pointer-events: none;
+            z-index: 1000;
+            animation: celebrate 1.3s ease-out forwards;
+        }
+
+        @keyframes celebrate {
+            0% {
+                transform: translateY(0) scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-60px) scale(1.3) rotate(180deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-130px) scale(0.8) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+            .score {
+                font-size: 1.2em;
+                padding: 8px 15px;
+            }
+            .bubble-container {
+                grid-template-columns: repeat(4, 80px);
+                grid-gap: 12px;
+                padding: 20px;
+            }
+            .bubble {
+                width: 80px;
+                height: 80px;
+            }
+            .reset-btn {
+                font-size: 1.1em;
+                padding: 10px 25px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            .header h1 {
+                font-size: 1.6em;
+                margin-bottom: 10px;
+            }
+            .score {
+                font-size: 1em;
+                padding: 6px 12px;
+            }
+            .bubble-container {
+                grid-template-columns: repeat(3, 70px);
+                grid-gap: 10px;
+                padding: 15px;
+                max-width: 100%;
+            }
+            .bubble {
+                width: 70px;
+                height: 70px;
+            }
+            .reset-btn {
+                font-size: 1em;
+                padding: 8px 20px;
+                margin-top: 15px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .header h1 {
+                font-size: 1.4em;
+            }
+            .score {
+                font-size: 0.9em;
+            }
+            .bubble-container {
+                grid-template-columns: repeat(3, 60px);
+                grid-gap: 8px;
+                padding: 12px;
+            }
+            .bubble {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🫧 戳泡泡舒压 🫧</h1>
+        <div class="score">已戳破: <span id="score">0</span> / <span id="total">25</span></div>
+    </div>
+
+    <div class="bubble-container" id="bubbleContainer"></div>
+
+    <button class="reset-btn" onclick="resetGame()">🔄 重新开始</button>
+
+    <script>
+        let score = 0;
+        const totalBubbles = 25;
+        const emojis = ['💫', '✨', '⭐', '🌟', '💥', '🎉', '🎊', '💖', '🎈', '🌈'];
+        
+        // 预加载图片，确保图片在缓存中
+        const bubbleImage = new Image();
+        bubbleImage.src = 'bubble.png';
+        
+        bubbleImage.onload = function() {
+            console.log('泡泡图片已加载');
+        };
+        
+        bubbleImage.onerror = function() {
+            console.error('泡泡图片加载失败，请检查文件路径');
+        };
+
+        // 创建泡泡
+        function createBubbles() {
+            const container = document.getElementById('bubbleContainer');
+            container.innerHTML = '';
+            
+            console.log('开始创建泡泡...');
+            
+            for (let i = 0; i < totalBubbles; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                
+                const img = document.createElement('img');
+                // 使用完整路径，避免路径问题
+                img.src = bubbleImage.src;
+                img.alt = 'bubble';
+                
+                // 每个泡泡随机旋转角度，让彩虹效果位置不同
+                // 使用 CSS 变量而不是直接设置 transform，避免覆盖动画
+                const randomRotate = Math.random() * 360;
+                bubble.style.setProperty('--initial-rotate', randomRotate + 'deg');
+                img.style.transform = `rotate(${randomRotate}deg)`;
+                
+                bubble.appendChild(img);
+                bubble.addEventListener('click', popBubble);
+                container.appendChild(bubble);
+            }
+            
+            console.log('泡泡创建完成，共' + totalBubbles + '个');
+        }
+
+        // 戳破泡泡
+        function popBubble(e) {
+            if (e.currentTarget.classList.contains('popped')) return;
+            
+            const bubble = e.currentTarget;
+            const rect = bubble.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            // 创建彩虹水滴飞溅效果
+            createRainbowSplash(centerX, centerY);
+            
+            bubble.classList.add('popped');
+            score++;
+            updateScore();
+            
+            playPopSound();
+            showCelebration(centerX, centerY);
+            
+            if (score === totalBubbles) {
+                setTimeout(() => {
+                    alert('🎉 恭喜！你戳破了所有泡泡！\n\n感觉放松了吗？再来一局吧！');
+                    // alert关闭后自动重置游戏
+                    resetGame();
+                }, 500);
+            }
+        }
+        
+        // 创建彩虹色水滴飞溅
+        function createRainbowSplash(x, y) {
+            const colors = [
+                'rgba(255, 150, 200, 0.9)',
+                'rgba(255, 180, 150, 0.9)',
+                'rgba(255, 220, 150, 0.9)',
+                'rgba(220, 255, 180, 0.9)',
+                'rgba(150, 255, 200, 0.9)',
+                'rgba(150, 220, 255, 0.9)',
+                'rgba(180, 150, 255, 0.9)',
+                'rgba(220, 150, 255, 0.9)',
+            ];
+            
+            const dropCount = 18;
+            for (let i = 0; i < dropCount; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'water-drop';
+                drop.style.left = x + 'px';
+                drop.style.top = y + 'px';
+                
+                const colorIndex = i % colors.length;
+                drop.style.background = `radial-gradient(circle at 30% 30%, ${colors[colorIndex]}, ${colors[(colorIndex + 1) % colors.length]})`;
+                drop.style.boxShadow = `0 0 15px ${colors[colorIndex]}`;
+                
+                const angle = (Math.PI * 2 * i) / dropCount + (Math.random() - 0.5) * 0.4;
+                const velocity = 70 + Math.random() * 70;
+                const vx = Math.cos(angle) * velocity;
+                const vy = Math.sin(angle) * velocity;
+                
+                document.body.appendChild(drop);
+                animateWaterDrop(drop, vx, vy);
+            }
+        }
+        
+        function animateWaterDrop(drop, vx, vy) {
+            let x = parseFloat(drop.style.left);
+            let y = parseFloat(drop.style.top);
+            let opacity = 1;
+            let time = 0;
+            const gravity = 3;
+            
+            function animate() {
+                time += 0.02;
+                x += vx * 0.02;
+                y += (vy + gravity * time * 50) * 0.02;
+                opacity -= 0.015;
+                
+                drop.style.left = x + 'px';
+                drop.style.top = y + 'px';
+                drop.style.opacity = opacity;
+                drop.style.transform = `scale(${opacity * 1.2})`;
+                
+                if (opacity > 0 && time < 1.5) {
+                    requestAnimationFrame(animate);
+                } else {
+                    drop.remove();
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+            const scoreElement = document.getElementById('score');
+            scoreElement.style.transform = 'scale(1.4)';
+            scoreElement.style.color = '#FFD700';
+            setTimeout(() => {
+                scoreElement.style.transform = 'scale(1)';
+                scoreElement.style.color = 'white';
+            }, 250);
+        }
+
+        function playPopSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 950 + Math.random() * 350;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            } catch(e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        function showCelebration(x, y) {
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            celebration.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            celebration.style.left = x + 'px';
+            celebration.style.top = y + 'px';
+            
+            document.body.appendChild(celebration);
+            
+            setTimeout(() => {
+                celebration.remove();
+            }, 1300);
+        }
+
+        // 重置游戏
+        function resetGame() {
+            score = 0;
+            updateScore();
+            
+            // 清空容器
+            const container = document.getElementById('bubbleContainer');
+            container.innerHTML = '';
+            
+            // 稍微延迟后重新创建，确保DOM更新
+            setTimeout(() => {
+                createBubbles();
+            }, 50);
+        }
+
+        createBubbles();
+    </script>
+</body>
+</html>
